@@ -3,10 +3,14 @@ import json
 from datetime import datetime
 from pending_queries import generate_response, save_query
 
+# Load custom CSS
+with open('.streamlit/style.css') as f:
+    st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+
 
 # Patient Page
 def patient_page():
-    st.title("🩺 AI Health Assistant")
+    st.title("🩺 Ask Assist")
 
     # Input section
     patient_query = st.text_area(
@@ -41,8 +45,27 @@ def patient_page():
 
 
 
-    # Full-width button without columns
-    send_button = st.button("🔍 Ask Assist", use_container_width=True)       
+    # Custom styled button
+    st.markdown("""
+        <style>
+        div.stButton > button {
+            background-color: black;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 0.3rem 0.8rem;
+            font-weight: bold;
+            width: 40%;
+            margin: 0 auto;
+            display: block;
+        }
+        div.stButton > button:hover {
+            background-color: #553287;
+            color: #fff;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    send_button = st.button("**SEND YOUR QUESTION**", use_container_width=True)
     # Response section
     if send_button and patient_query:
         with st.spinner("Generating response..."):

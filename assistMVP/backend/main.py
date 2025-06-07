@@ -26,10 +26,12 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-
 # Set page config
-st.sidebar.subheader("**Meet Assist — Your Friendly Health Helper for Diabetes**")
-st.sidebar.write("**Struggling to explain your symptoms or ask for the right treatment? Assist helps you turn your thoughts into clear, accurate requests your doctor will understand. It’s like having a smart friend by your side who knows diabetes—and speaks doctor!**")
+st.sidebar.header("**Assist — AI Diabetes Assistant**")
+st.sidebar.subheader("***Your Friendly Health Helper for Diabetes***")
+st.sidebar.write("Struggling to explain your symptoms or ask for the right treatment? Assist helps you turn your thoughts into clear, accurate requests your doctor will understand. It's like having a smart friend by your side who knows diabetes—and speaks doctor!")
+st.sidebar.markdown("---")
+
 page = st.sidebar.selectbox(
     "Access as:",
     ["👤 Patient (Ask Questions)", "👨‍⚕️ Doctor (Review & Reply)"],
