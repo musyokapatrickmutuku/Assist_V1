@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+langchain
+langgraph
+langchain_openai # Used for ChatOpenAI wrapper, compatible with DeepSeek's OpenAI-like API
+# Add any other specific versions or dependencies if known
+# e.g., pydantic==<version>
+# requests==<version>
