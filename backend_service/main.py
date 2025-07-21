@@ -1,6 +1,6 @@
-# backend_service/main.py
-
 import os
+import uuid
+from datetime import datetime
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,11 +10,7 @@ from pydantic import BaseModel
 # Import your project's modules
 from .schemas import PatientQueryInput, AgentState
 from .graph import app as langgraph_app
-from .pending_queries import (
-    load_pending_queries, 
-    update_query_status, 
-    get_queries_by_patient_id
-)
+from .patient_db import get_db_connection
 
 # --- Environment Variable Loading & App Setup ---
 dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
@@ -63,6 +59,24 @@ async def process_query(query_input: PatientQueryInput) -> dict:
         final_state = langgraph_app.invoke(initial_state)
         if final_state.get("error_message"):
             raise HTTPException(status_code=400, detail=final_state["error_message"])
+        
+        # Save to database
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO queries (id, timestamp, patient_id, original_query, ai_response, status) VALUES (?, ?, ?, ?, ?, ?)",
+            (
+                str(uuid.uuid4()), 
+                datetime.now().isoformat(), 
+                query_input.patient_id, 
+                query_input.query, 
+                final_state.get('ai_response'), 
+                'pending_review'
+            )
+        )
+        conn.commit()
+        conn.close()
+
         return final_state
     except Exception as e:
         print(f"FATAL ERROR in /process_query/ endpoint: {e}")
@@ -70,17 +84,30 @@ async def process_query(query_input: PatientQueryInput) -> dict:
 
 @app.get("/pending_queries/", response_model=List[dict], tags=["Doctor Dashboard"])
 async def get_pending_queries_endpoint():
-    return load_pending_queries()
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM queries WHERE status = 'pending_review'")
+    queries = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return queries
 
 @app.post("/update_query/{query_id}", tags=["Doctor Dashboard"])
 async def update_query_endpoint(query_id: str, action: DoctorAction):
-    success, message = update_query_status(query_id, action.new_status, action.doctor_response)
-    if not success:
-        raise HTTPException(status_code=404, detail=message)
-    return {"status": "success", "message": message}
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE queries SET status = ?, doctor_final_response = ? WHERE id = ?", (action.new_status, action.doctor_response, query_id))
+    conn.commit()
+    if cursor.rowcount == 0:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Query not found")
+    conn.close()
+    return {"status": "success", "message": "Query updated successfully"}
 
-# THE FIX: This new endpoint allows the patient UI to fetch its own history.
 @app.get("/queries/by_patient/{patient_id}", response_model=List[dict], tags=["Patient Portal"])
 async def get_patient_queries_endpoint(patient_id: str):
-    """Returns all historical queries submitted by a specific patient."""
-    return get_queries_by_patient_id(patient_id)
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM queries WHERE patient_id = ?", (patient_id,))
+    queries = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return queries

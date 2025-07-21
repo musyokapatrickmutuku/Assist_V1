@@ -1,0 +1,22 @@
+
+version: '3.8'
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: assistMVP/streamlit_app/Dockerfile
+    ports:
+      - "8501:8501"
+    depends_on:
+      - backend
+    environment:
+      - BACKEND_URL=http://backend:8000
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend_service/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend_service/queries.db:/app/queries.db

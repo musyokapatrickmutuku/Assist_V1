@@ -26,7 +26,10 @@ def patient_portal():
             with st.spinner("Submitting your query..."):
                 payload = {"patient_id": patient_id, "query": medical_question}
                 try:
-                    api_response = requests.post("http://localhost:8000/process_query/", json=payload)
+                    import os
+
+BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
+api_response = requests.post(f"{BACKEND_URL}/process_query/", json=payload)
                     api_response.raise_for_status()
                     response_data = api_response.json()
                     st.success(response_data.get("final_response_to_patient", "Query submitted successfully!"))
@@ -42,7 +45,7 @@ def patient_portal():
 
         try:
             # THE FIX: Call the new endpoint to get this patient's queries
-            response = requests.get(f"http://localhost:8000/queries/by_patient/{patient_id}")
+            response = requests.get(f"{BACKEND_URL}/queries/by_patient/{patient_id}")
             response.raise_for_status()
             my_queries = response.json()
 

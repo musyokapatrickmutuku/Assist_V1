@@ -25,7 +25,10 @@ def doctor_portal():
 
         try:
             # Call the backend API to fetch queries with 'pending_review' status
-            response = requests.get("http://localhost:8000/pending_queries/")
+            import os
+
+BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
+response = requests.get(f"{BACKEND_URL}/pending_queries/")
             response.raise_for_status()
             pending_queries = response.json()
 
@@ -70,7 +73,7 @@ def doctor_portal():
                             }
                             try:
                                 # Call the backend endpoint to update the query's status
-                                update_response = requests.post(f"http://localhost:8000/update_query/{query['id']}", json=payload)
+                                update_response = requests.post(f"{BACKEND_URL}/update_query/{query['id']}", json=payload)
                                 update_response.raise_for_status()
                                 st.success(f"Query for Patient {query['patient_id']} has been approved and finalized.")
                                 st.rerun() # Refresh the page to remove the approved query
