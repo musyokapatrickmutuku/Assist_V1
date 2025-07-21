@@ -127,3 +127,6 @@ assistMVP/streamlit_app/.env
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Setup script
+setup.sh
