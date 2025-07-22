@@ -4,8 +4,8 @@ import os
 from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, END
 
-from .schemas import AgentState
-from .patient_db import get_patient_data, get_patient_context_for_ai
+from schemas import AgentState
+from patient_db import get_patient_data, get_patient_context_for_ai
 
 # --- Enhanced Helper Functions for Demo ---
 def get_safety_score(ai_response: str) -> int:
@@ -90,10 +90,24 @@ def save_query_for_review(state_dict: dict):
     import sqlite3
     import uuid
     from datetime import datetime
-    from .patient_db import get_db_connection
+    from patient_db import get_db_connection
     
     conn = get_db_connection()
     cursor = conn.cursor()
+    
+    # Check if this query already exists (prevent duplicates)
+    cursor.execute("""
+        SELECT id FROM queries 
+        WHERE patient_id = ? AND original_query = ? 
+        AND status = 'pending_review'
+        ORDER BY timestamp DESC LIMIT 1
+    """, (state_dict['patient_id'], state_dict['original_query']))
+    
+    existing = cursor.fetchone()
+    if existing:
+        print(f"Query already exists with ID: {existing[0]} - skipping duplicate save")
+        conn.close()
+        return {"id": existing[0], "status": "pending_review"}
     
     query_id = str(uuid.uuid4())
     

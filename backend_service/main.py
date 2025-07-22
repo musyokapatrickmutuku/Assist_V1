@@ -8,9 +8,9 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 # Import your project's modules
-from .schemas import PatientQueryInput, AgentState
-from .graph import app as langgraph_app
-from .patient_db import get_db_connection
+from schemas import PatientQueryInput, AgentState
+from graph import app as langgraph_app
+from patient_db import get_db_connection
 
 # --- Environment Variable Loading & App Setup ---
 dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
@@ -60,23 +60,9 @@ async def process_query(query_input: PatientQueryInput) -> dict:
         if final_state.get("error_message"):
             raise HTTPException(status_code=400, detail=final_state["error_message"])
         
-        # Save to database
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            "INSERT INTO queries (id, timestamp, patient_id, original_query, ai_response, status) VALUES (?, ?, ?, ?, ?, ?)",
-            (
-                str(uuid.uuid4()), 
-                datetime.now().isoformat(), 
-                query_input.patient_id, 
-                query_input.query, 
-                final_state.get('ai_response'), 
-                'pending_review'
-            )
-        )
-        conn.commit()
-        conn.close()
-
+        # Query is already saved by the LangGraph workflow in save_query_for_review()
+        # No need to save it again here to avoid duplicates
+        
         return final_state
     except Exception as e:
         print(f"FATAL ERROR in /process_query/ endpoint: {e}")

@@ -120,6 +120,10 @@ def patient_portal():
                     type="primary"
                 )
 
+        # Reset query submitted flag when showing form
+        if "query_submitted" in st.session_state:
+            del st.session_state.query_submitted
+
         # Handle submission
         if submit_button and medical_question:
             with st.spinner("Sending your query..."):
@@ -141,20 +145,31 @@ def patient_portal():
                     urgency_level = response_data.get("urgency_level", "low")
                     
                     if urgency_level == "high":
-                        st.error("🚨 " + response_data.get("final_response_to_patient", "Query marked as urgent!"))
+                        st.error("🚨 " + response_data.get("final_response_to_patient", "Query marked as urgent and sent to your doctor for immediate review!"))
                     elif urgency_level == "medium":
-                        st.warning("⚡ " + response_data.get("final_response_to_patient", "Query submitted for priority review."))
+                        st.warning("⚡ " + response_data.get("final_response_to_patient", "Query submitted for priority review. You'll hear back within a few hours."))
                     else:
-                        st.success("✅ " + response_data.get("final_response_to_patient", "Query submitted successfully!"))
+                        st.success("✅ " + response_data.get("final_response_to_patient", "Query submitted successfully! You'll receive a response within 24 hours."))
+                    
+                    # Show additional confirmation
+                    st.info("📧 Your query has been recorded and is now visible in your 'My Queries' tab.")
                     
                     # Show next steps
                     with st.expander("What happens next?"):
                         st.markdown("""
-                        1. **AI Analysis**: Our AI reviews your question for urgency
-                        2. **Doctor Review**: Your doctor reviews the AI suggestion
-                        3. **Personalized Response**: You receive a verified response
-                        4. **Follow-up**: Schedule appointments if needed
+                        1. **AI Analysis**: Our AI reviews your question for urgency ✅ Done
+                        2. **Doctor Review**: Your doctor reviews the AI suggestion ⏳ In Progress
+                        3. **Personalized Response**: You receive a verified response 📅 Soon
+                        4. **Follow-up**: Schedule appointments if needed 🔄 Available
                         """)
+                    
+                    # Force a refresh of the page to show the new query in "My Queries"
+                    st.balloons()
+                    
+                    # Clear form by setting a flag to rerun
+                    if "query_submitted" not in st.session_state:
+                        st.session_state.query_submitted = True
+                        st.rerun()
                         
                 except requests.exceptions.RequestException:
                     st.error("😔 Could not submit your query. Please try again or contact support.")

@@ -4,7 +4,7 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: assistMVP/streamlit_app/Dockerfile
+      dockerfile: frontend/streamlit_app/Dockerfile
     ports:
       - "8501:8501"
     depends_on:

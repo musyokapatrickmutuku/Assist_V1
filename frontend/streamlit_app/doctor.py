@@ -21,11 +21,22 @@ def get_patient_info(patient_id):
     """Fetch patient information from backend"""
     try:
         # In a real app, this would be an API call
-        # For demo, we'll use the patient data structure
-        from backend_service.patient_db import get_patient_summary
-        return get_patient_summary(patient_id)
+        # For demo, we'll make a simple API call to backend
+        response = requests.get(f"{BACKEND_URL}/patient/{patient_id}")
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return None
     except:
-        return None
+        # Fallback: hardcoded patient info for demo
+        patient_names = {
+            "P001": {"name": "Sarah Johnson", "diabetes_type": "Type 2", "current_hba1c": "6.9%", "complications": False},
+            "P002": {"name": "Michael Thompson", "diabetes_type": "Type 1", "current_hba1c": "7.8%", "complications": False},
+            "P003": {"name": "Carlos Rodriguez", "diabetes_type": "Type 2", "current_hba1c": "6.8%", "complications": True},
+            "P004": {"name": "Priya Patel", "diabetes_type": "Type 2 (post-GDM)", "current_hba1c": "6.2%", "complications": False},
+            "P005": {"name": "Eleanor Williams", "diabetes_type": "Type 2", "current_hba1c": "8.0%", "complications": True}
+        }
+        return patient_names.get(patient_id, None)
 
 def format_time_ago(timestamp_str):
     """Format timestamp as 'X hours ago'"""
