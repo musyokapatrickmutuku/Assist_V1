@@ -6,7 +6,7 @@ import pandas as pd
 from datetime import datetime
 import os
 
-BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
+BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8001")
 
 def get_urgency_badge(urgency_level):
     """Return colored emoji badge based on urgency"""
@@ -69,18 +69,31 @@ def doctor_portal():
 
     # --- Review Queries Tab ---
     with review_tab:
-        col1, col2 = st.columns([3, 1])
+        col1, col2, col3 = st.columns([2, 1, 1])
         with col1:
             st.subheader("Queries Awaiting Review")
         with col2:
-            if st.button("🔄 Refresh", use_container_width=True):
+            auto_refresh = st.checkbox("Auto-refresh", value=True, help="Automatically refresh every 30 seconds")
+        with col3:
+            if st.button("🔄 Refresh Now", use_container_width=True):
                 st.rerun()
+
+        # Auto-refresh functionality
+        if auto_refresh:
+            import time
+            time.sleep(0.1)  # Small delay for UI
+            st.rerun()
 
         # Fetch pending queries
         try:
             response = requests.get(f"{BACKEND_URL}/pending_queries/")
             response.raise_for_status()
             pending_queries = response.json()
+            
+            # Show last updated time
+            current_time = datetime.now().strftime("%H:%M:%S")
+            st.caption(f"Last updated: {current_time}")
+            
         except requests.exceptions.RequestException as e:
             st.error("Could not fetch pending queries. Please ensure the backend service is running.")
             pending_queries = []

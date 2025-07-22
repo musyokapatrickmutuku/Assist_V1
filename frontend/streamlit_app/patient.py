@@ -6,7 +6,7 @@ import pandas as pd
 from datetime import datetime
 import os
 
-BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
+BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8001")
 
 # Sample queries for easy demo
 SAMPLE_QUERIES = {
@@ -37,20 +37,59 @@ def patient_portal():
     # Header with personalized greeting
     st.header(f"Welcome back, {patient_name}! 👋")
     
-    # Quick stats (would be fetched from backend in production)
+    # Fetch patient-specific metrics
+    try:
+        # Get patient data from backend
+        patient_response = requests.get(f"{BACKEND_URL}/patient/{patient_id}")
+        if patient_response.status_code == 200:
+            patient_data = patient_response.json()
+            profile = patient_data.get('profile', {})
+            status = patient_data.get('current_status', {})
+        else:
+            # Fallback to hardcoded data for demo
+            try:
+                import sys
+                sys.path.append('../backend_service')
+                from patient_db import get_patient_data
+                patient_data = get_patient_data(patient_id) or {}
+                profile = patient_data.get('profile', {})
+                status = patient_data.get('current_status', {})
+            except ImportError:
+                profile = {}
+                status = {}
+    except:
+        # Fallback data
+        profile = {}
+        status = {}
+    
+    # Get active queries count
+    try:
+        queries_response = requests.get(f"{BACKEND_URL}/queries/by_patient/{patient_id}")
+        active_queries = len([q for q in queries_response.json() if q.get('status') == 'pending_review']) if queries_response.status_code == 200 else 0
+    except:
+        active_queries = 0
+    
+    # Display patient-specific metrics
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        st.metric("Last HbA1c", "6.9%", "-0.3%", delta_color="inverse")
+        hba1c = status.get('hba1c', 'N/A')
+        st.metric("Last HbA1c", hba1c, "Recent" if hba1c != 'N/A' else None)
     with col2:
-        st.metric("Avg Glucose", "130 mg/dL", "Good")
+        glucose = status.get('last_fasting_glucose', 'N/A')
+        st.metric("Last Glucose", glucose, "Fasting" if glucose != 'N/A' else None)
     with col3:
-        st.metric("Next Appointment", "Sept 15", "In 2 weeks")
+        diabetes_type = profile.get('Type of Diabetes', 'N/A')
+        st.metric("Diabetes Type", diabetes_type.replace('Type ', 'T') if diabetes_type != 'N/A' else 'N/A')
     with col4:
-        st.metric("Active Queries", "1", "Pending")
+        st.metric("Active Queries", str(active_queries), "Pending" if active_queries > 0 else "None")
     
     st.markdown("---")
     
-    # Create tabs
+    # Create tabs - auto switch to queries tab if just submitted
+    default_tab = 1 if st.session_state.get('switch_to_queries_tab', False) else 0
+    if st.session_state.get('switch_to_queries_tab', False):
+        del st.session_state.switch_to_queries_tab  # Clear the flag
+    
     submit_tab, queries_tab, resources_tab, profile_tab = st.tabs([
         "❓ Ask a Question", "📋 My Queries", "📚 Resources", "👤 My Profile"
     ])
@@ -166,10 +205,14 @@ def patient_portal():
                     # Force a refresh of the page to show the new query in "My Queries"
                     st.balloons()
                     
-                    # Clear form by setting a flag to rerun
-                    if "query_submitted" not in st.session_state:
-                        st.session_state.query_submitted = True
-                        st.rerun()
+                    # Set flag to switch to queries tab and clear form
+                    st.session_state.query_submitted = True
+                    st.session_state.switch_to_queries_tab = True
+                    
+                    # Small delay to ensure backend processing is complete
+                    import time
+                    time.sleep(1)
+                    st.rerun()
                         
                 except requests.exceptions.RequestException:
                     st.error("😔 Could not submit your query. Please try again or contact support.")
@@ -192,8 +235,12 @@ def patient_portal():
                 value=datetime.now().date().replace(day=1)
             )
         with col3:
-            if st.button("🔄 Refresh"):
+            if st.button("🔄 Refresh", use_container_width=True):
                 st.rerun()
+        
+        # Show last refresh time
+        current_time = datetime.now().strftime("%H:%M:%S")
+        st.caption(f"Last updated: {current_time}")
         
         # Fetch queries
         try:
