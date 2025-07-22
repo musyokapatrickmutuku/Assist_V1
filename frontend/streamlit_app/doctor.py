@@ -73,7 +73,7 @@ def doctor_portal():
         with col1:
             st.subheader("Queries Awaiting Review")
         with col2:
-            auto_refresh = st.checkbox("Auto-refresh", value=True, help="Automatically refresh every 30 seconds")
+            auto_refresh = st.checkbox("Auto-refresh", value=False, help="Automatically refresh every 30 seconds")
         with col3:
             if st.button("🔄 Refresh Now", use_container_width=True):
                 st.rerun()
@@ -81,8 +81,13 @@ def doctor_portal():
         # Auto-refresh functionality
         if auto_refresh:
             import time
-            time.sleep(0.1)  # Small delay for UI
-            st.rerun()
+            if "last_refresh" not in st.session_state:
+                st.session_state.last_refresh = time.time()
+            
+            # Only refresh every 30 seconds
+            if time.time() - st.session_state.last_refresh > 30:
+                st.session_state.last_refresh = time.time()
+                st.rerun()
 
         # Fetch pending queries
         try:
@@ -90,12 +95,15 @@ def doctor_portal():
             response.raise_for_status()
             pending_queries = response.json()
             
-            # Show last updated time
+            # Show last updated time and debug info
             current_time = datetime.now().strftime("%H:%M:%S")
-            st.caption(f"Last updated: {current_time}")
+            st.caption(f"Last updated: {current_time} | Backend: {BACKEND_URL} | Found: {len(pending_queries)} queries")
             
         except requests.exceptions.RequestException as e:
-            st.error("Could not fetch pending queries. Please ensure the backend service is running.")
+            st.error(f"Could not fetch pending queries from {BACKEND_URL}. Error: {str(e)}")
+            pending_queries = []
+        except Exception as e:
+            st.error(f"Unexpected error: {str(e)}")
             pending_queries = []
 
         if not pending_queries:

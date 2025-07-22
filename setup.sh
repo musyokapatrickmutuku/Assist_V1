@@ -1,79 +1,117 @@
 #!/bin/bash
 
-# Assist AI - Quick Setup Script
-# This script helps set up the demo environment quickly
+# Assist AI - Simplified Setup Script
+# This script sets up the simplified MVP demo environment
 
-echo "🏥 Welcome to Assist AI Setup!"
-echo "================================"
+echo "🏥 Welcome to Assist AI - Simplified Demo Setup!"
+echo "================================================="
+echo "This simplified version removes complex dependencies"
+echo "and focuses on core functionality for MVP demo."
+echo ""
 
-# Check if Docker is installed
-if ! command -v docker &> /dev/null; then
-    echo "❌ Docker is not installed. Please install Docker first."
-    echo "Visit: https://docs.docker.com/get-docker/"
+# Check if Python is installed
+if ! command -v python3 &> /dev/null && ! command -v python &> /dev/null; then
+    echo "❌ Python is not installed. Please install Python 3.8+ first."
+    echo "Visit: https://python.org/downloads/"
     exit 1
 fi
 
-# Check if Docker Compose is installed
-if ! command -v docker-compose &> /dev/null; then
-    echo "❌ Docker Compose is not installed. Please install Docker Compose first."
-    echo "Visit: https://docs.docker.com/compose/install/"
+# Determine Python command
+PYTHON_CMD="python3"
+if command -v python &> /dev/null && python --version 2>&1 | grep -q "Python 3"; then
+    PYTHON_CMD="python"
+fi
+
+echo "✅ Python is installed"
+
+# Check if pip is available
+if ! command -v pip &> /dev/null && ! command -v pip3 &> /dev/null; then
+    echo "❌ pip is not installed. Please install pip first."
     exit 1
 fi
 
-echo "✅ Docker and Docker Compose are installed"
-
-# Create .env file if it doesn't exist
-if [ ! -f backend_service/.env ]; then
-    echo "📝 Creating .env file from template..."
-    cp .env.example backend_service/.env
-    
-    echo ""
-    echo "⚠️  IMPORTANT: Please add your DeepSeek API key to backend_service/.env"
-    echo "   Edit the file and replace 'your_deepseek_api_key_here' with your actual key"
-    echo "   Get your API key from: https://platform.deepseek.com/"
-    echo ""
-    read -p "Press Enter once you've added your API key..."
+# Determine pip command
+PIP_CMD="pip3"
+if command -v pip &> /dev/null; then
+    PIP_CMD="pip"
 fi
 
-# Initialize the database
-echo "🗄️  Initializing database..."
-python3 backend_service/patient_db.py
+echo "✅ pip is installed"
 
-# Build and start containers
-echo "🚀 Building and starting containers..."
-docker-compose build
-docker-compose up -d
-
-# Wait for services to start
-echo "⏳ Waiting for services to start..."
-sleep 10
-
-# Check if services are running
-if curl -f http://localhost:8000/ &> /dev/null; then
-    echo "✅ Backend service is running"
-else
-    echo "❌ Backend service failed to start. Check logs with: docker-compose logs backend"
+# Install backend dependencies
+echo "📦 Installing backend dependencies..."
+cd backend_service
+$PIP_CMD install -r requirements.txt
+if [ $? -ne 0 ]; then
+    echo "❌ Failed to install backend dependencies"
+    exit 1
 fi
+cd ..
 
-if curl -f http://localhost:8501/ &> /dev/null; then
-    echo "✅ Frontend service is running"
-else
-    echo "❌ Frontend service failed to start. Check logs with: docker-compose logs frontend"
+# Install frontend dependencies
+echo "📦 Installing frontend dependencies..."
+cd frontend/streamlit_app
+$PIP_CMD install -r requirements.txt
+if [ $? -ne 0 ]; then
+    echo "❌ Failed to install frontend dependencies"
+    exit 1
 fi
+cd ../..
 
+echo "✅ All dependencies installed successfully"
 echo ""
-echo "🎉 Setup complete!"
-echo "================================"
-echo "Access the application at:"
-echo "🌐 Frontend: http://localhost:8501"
-echo "🔧 Backend API: http://localhost:8000"
+
+# Create simplified database
+echo "🗄️  Initializing simplified database..."
+$PYTHON_CMD backend_service/patient_db.py
+
+echo "✅ Database initialized"
 echo ""
-echo "📚 Demo Accounts:"
-echo "Patients: Sarah Johnson (P001), Michael Thompson (P002), etc."
-echo "Doctors: Dr. Emily Chen (D001), Dr. Michael Roberts (D002)"
-echo "Password: demo123"
+
+echo "🎉 Setup Complete!"
+echo "=================="
+echo "Choose your preferred startup method:"
 echo ""
-echo "📖 View logs: docker-compose logs -f"
-echo "🛑 Stop services: docker-compose down"
+echo "📱 Option 1: Quick Start (Windows - Recommended)"
+echo "   1. Double-click: run_simple_backend.bat"
+echo "   2. Double-click: run_simple_frontend.bat"
+echo "   3. Browser will open automatically"
 echo ""
-echo "Happy hacking! 🚀" 
+echo "💻 Option 2: Manual Start (All platforms)"
+echo "   Terminal 1 (Backend):"
+echo "   cd backend_service && $PYTHON_CMD main_simple.py"
+echo ""
+echo "   Terminal 2 (Frontend):"
+echo "   cd frontend/streamlit_app"
+echo "   export BACKEND_URL=http://localhost:8002  # Linux/Mac"
+echo "   set BACKEND_URL=http://localhost:8002     # Windows"
+echo "   streamlit run app_simple.py --server.port 8506"
+echo ""
+echo "🌐 Access Points:"
+echo "   Frontend: http://localhost:8506"
+echo "   Backend:  http://localhost:8002"
+echo ""
+echo "📚 Demo Flow:"
+echo "1. Login as Patient: Select 'Sarah Johnson' → Login"
+echo "2. Submit Question: Type medical question → Send to Doctor"
+echo "3. Login as Doctor: Logout → Select 'Doctor' → Login"
+echo "4. Review & Respond: See question → Write response → Send"
+echo "5. Verify: Login as patient → Check 'My Questions' tab"
+echo ""
+echo "✨ Key Features Working:"
+echo "   ✅ Question submission with confirmation"
+echo "   ✅ Doctor review interface"
+echo "   ✅ Response sending"
+echo "   ✅ Real-time status updates"
+echo "   ✅ Urgency prioritization"
+echo "   ✅ Complete patient-doctor workflow"
+echo ""
+echo "🔧 No External Dependencies:"
+echo "   ✅ No API keys required"
+echo "   ✅ No Docker needed"
+echo "   ✅ No LangGraph complexity"
+echo "   ✅ Simple SQLite database"
+echo ""
+echo "📖 For detailed instructions, see: README_SIMPLE.md"
+echo ""
+echo "Happy testing! 🚀"
