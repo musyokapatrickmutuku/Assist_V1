@@ -128,5 +128,6 @@ assistMVP/streamlit_app/.env
 .DS_Store
 Thumbs.db
 
-# Setup script
-setup.sh
+# Database files (runtime data)
+*.db
+queries.db
